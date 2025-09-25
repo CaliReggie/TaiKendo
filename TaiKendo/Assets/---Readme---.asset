@@ -16,7 +16,7 @@ MonoBehaviour:
   iconMaxWidth: 128
   projectName: Project Name
   author: Author Name
-  modificationDate: 2025-09-23
+  modificationDate: 2025-09-25
   sections:
   - heading: 0. Default Section Header
     text: Section Text Here
