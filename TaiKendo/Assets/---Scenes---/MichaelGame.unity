@@ -844,11 +844,59 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2633499455775034783, guid: 322f00337c96cd24e98f055151ed179b, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2684351111198772593, guid: 322f00337c96cd24e98f055151ed179b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1824363912}
   m_SourcePrefab: {fileID: 100100000, guid: 322f00337c96cd24e98f055151ed179b, type: 3}
+--- !u!1 &1824363911 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2684351111198772593, guid: 322f00337c96cd24e98f055151ed179b, type: 3}
+  m_PrefabInstance: {fileID: 1824363910}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1824363912
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1824363911}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78e5547481103a445ad4b09663a6bbef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 5
+  gravity: -9.8
+  jumpHeight: 1.2
+  cam: {fileID: 0}
+  sensitivity: 0
+  attackDistance: 3
+  attackDelay: 0.4
+  attackSpeed: 1
+  attackDamage: 1
+  attackLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  hitEffect: {fileID: 0}
+  swordSwing: {fileID: 0}
+  hitSound: {fileID: 0}
+  lockDistance: 10
+  aimingDuration: 0.25
+  blocking: 0
+  shieldPosition: {fileID: 0}
+  shield: {fileID: 0}
+  aimingInput: {x: 0, y: 0}
+  hitDirection: 1
+  waveMaterial: {fileID: 2100000, guid: eeb9df7df04ad2640b3b4984c308aaf3, type: 2}
+  waveDuration: 2
+  hitPosition: {x: 0, y: 0, z: 0}
+  waveSpread: 0.25
+  startSpread: 0.1
 --- !u!1 &1953433100
 GameObject:
   m_ObjectHideFlags: 0
