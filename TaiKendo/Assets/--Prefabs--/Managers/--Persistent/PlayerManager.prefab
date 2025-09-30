@@ -93,7 +93,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   debugMode: 0
   context:
-    playerInputObjectPrefab: {fileID: 1706744786136297732, guid: f3f94d797f5cd0a47bf5de69850fad8e, type: 3}
+    playerInputObjectPrefab: {fileID: 1706744786136297732, guid: c84d9ffe64b0e8444ad5bcb79c763f6d, type: 3}
     playersParent: {fileID: 1358609943866202553}
     cursorsCanvas: {fileID: 3555103882816508364}
     cursorsParent: {fileID: 2017580039666304878}

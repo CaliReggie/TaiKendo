@@ -59,6 +59,9 @@ public class CameraPioComponent : PlayerInputObjectComponent
     [Tooltip("Exists for serialization purposes. No effect. Click away!")]
     [SerializeField] private bool emptyBool;
     
+    [Tooltip("When true, camera is locked and facing towards a target rather than responding to look input")]
+    [SerializeField] private bool targetLocked;
+    
     [field: SerializeField] public EPlayerCamType PlayerCamType  { get; private set; }
     
     [Header("Dynamic References - Don't modify in Inspector")]
@@ -71,6 +74,9 @@ public class CameraPioComponent : PlayerInputObjectComponent
     
     [Tooltip("Current look input from player, set by OnLook method.")]
     [SerializeField] private Vector2 lookInput;
+
+    [Tooltip("If targetLocked is true and this is not null, the camera orientation will face this target.")]
+    [SerializeField] private Transform lockTarget;
     
     [Tooltip("Current rotation target for the camera type.")]
     [SerializeField] private Vector3 targetEulerRotation;
@@ -92,9 +98,9 @@ public class CameraPioComponent : PlayerInputObjectComponent
     }
     
     /// <summary>
-    /// Configure player camera with specified type and position target. Must be initialized.
+    /// Configure player camera with specified type and position to be at. Must be initialized.
     /// </summary>
-    public void ConfigureCamera(EPlayerCamType targetType, Transform targetPos)
+    public void ConfigureTypeAndPosition(EPlayerCamType targetType, Transform targetPos)
     {
         if (!Initialized)
         {
@@ -175,6 +181,28 @@ public class CameraPioComponent : PlayerInputObjectComponent
             //turn on the MainPlayerCam if it was off
             MainPlayerCam.enabled = true;
             MainPlayerCam.gameObject.SetActive(true);
+        }
+    }
+    
+    /// <summary>
+    /// Configure whether the camera is locked onto a target or receiving look input for look direction. If locking,
+    /// must supply a target Transform to look at.
+    /// </summary>
+    public void ConfigureTargetLock(bool locked, Transform target = null)
+    {
+        targetLocked = locked;
+        
+        lockTarget = target;
+        
+        if (targetLocked && lockTarget != null)
+        {
+            Vector3 directionToTarget = (lockTarget.position - camOrientation.position).normalized;
+            
+            Vector3 eulerToTarget = Quaternion.LookRotation(directionToTarget).eulerAngles;
+            
+            targetEulerRotation.x = eulerToTarget.x;
+            targetEulerRotation.y = eulerToTarget.y;
+            targetEulerRotation.z = 0;
         }
     }
     
@@ -336,8 +364,10 @@ public class CameraPioComponent : PlayerInputObjectComponent
             case PlayerInputObject.EPlayerInputObjectState.ObjectInitialize:
             case PlayerInputObject.EPlayerInputObjectState.Inactive:
             case PlayerInputObject.EPlayerInputObjectState.ApplicationUI:
+
+                ConfigureTargetLock(false);
                 
-                ConfigureCamera(EPlayerCamType.Inactive, targetPosition);
+                ConfigureTypeAndPosition(EPlayerCamType.Inactive, targetPosition);
                 
                 enabled = false;
                 break;
@@ -350,7 +380,7 @@ public class CameraPioComponent : PlayerInputObjectComponent
         {   
             case PlayerInputObject.EPlayerInputObjectState.Player:
                 
-                ConfigureCamera(defaultPlayerCamType, defaultTargetPosition);
+                ConfigureTypeAndPosition(defaultPlayerCamType, defaultTargetPosition);
                 
                 enabled = true;
                 
@@ -358,7 +388,7 @@ public class CameraPioComponent : PlayerInputObjectComponent
             
             case PlayerInputObject.EPlayerInputObjectState.PlayerUI:
                 
-                ConfigureCamera(EPlayerCamType.Fixed, null);
+                ConfigureTypeAndPosition(EPlayerCamType.Fixed, null);
                 
                 enabled = true;
                 
@@ -391,18 +421,32 @@ public class CameraPioComponent : PlayerInputObjectComponent
             }
         }
         
-        // updating orientation rotation based on look input
+        // updating orientation rotation based on look input or target lock
         void UpdateOrientationRotation()
         {
-            targetEulerRotation.y += lookInput.x * Time.deltaTime;
+            if (targetLocked && lockTarget != null)
+            {
+                Vector3 directionToTarget = (lockTarget.position - camOrientation.position).normalized;
+                
+                Vector3 eulerToTarget = Quaternion.LookRotation(directionToTarget).eulerAngles;
+                
+                targetEulerRotation.x = eulerToTarget.x;
+                targetEulerRotation.y = eulerToTarget.y;
+                
+                camOrientation.rotation = Quaternion.Euler(targetEulerRotation.x, targetEulerRotation.y, 0);
+            }
+            else
+            {
+                targetEulerRotation.y += lookInput.x * Time.deltaTime;
             
-            targetEulerRotation.x -= lookInput.y * Time.deltaTime;
-            
-            targetEulerRotation.x = Mathf.Clamp(targetEulerRotation.x, verticalRotRange.x, verticalRotRange.y);
-            
-            targetEulerRotation.y = Mathf.Repeat(targetEulerRotation.y, 360);
-            
-            camOrientation.rotation = Quaternion.Euler(targetEulerRotation.x, targetEulerRotation.y, 0);
+                targetEulerRotation.x -= lookInput.y * Time.deltaTime;
+                
+                targetEulerRotation.x = Mathf.Clamp(targetEulerRotation.x, verticalRotRange.x, verticalRotRange.y);
+                
+                targetEulerRotation.y = Mathf.Repeat(targetEulerRotation.y, 360);
+                
+                camOrientation.rotation = Quaternion.Euler(targetEulerRotation.x, targetEulerRotation.y, 0);
+            }
             
             // drive third person orbital component based on orientation if active
             bool thirdOrbitActive = PlayerCamType == EPlayerCamType.ThirdOrbit && thirdOrbitalComponent != null;

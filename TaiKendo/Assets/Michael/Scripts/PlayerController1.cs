@@ -9,8 +9,6 @@ using Random = UnityEngine.Random;
 public class PlayerController1 : MonoBehaviour
 {
     public static PlayerController1 s;
-    private InputSystem_Actions playerInput;
-    private InputSystem_Actions.PlayerActions input;
     CharacterController controller;
     Animator animator;
     AudioSource audioSource;
@@ -23,12 +21,70 @@ public class PlayerController1 : MonoBehaviour
     Vector3 _PlayerVelocity;
 
     bool isGrounded;
+    
+    Vector2 moveInput;
+    
+    Vector2 lookInput;
 
-    [Header("Camera")]
-    public Camera cam;
-    public float sensitivity;
+    private CameraPioComponent playerCamScript;
 
     float xRotation = 0f;
+    
+    public void OnMove(InputValue movementValue)
+    {
+        Vector2 input = movementValue.Get<Vector2>();
+        
+        moveInput = input;
+    }
+    
+    public void OnLook(InputValue lookValue)
+    {
+        Vector2 input = lookValue.Get<Vector2>();
+        
+        lookInput = input;
+    }
+    
+    public void OnJump(InputValue buttonValue)
+    {
+        if (buttonValue.isPressed)
+        {
+            if (isGrounded) _PlayerVelocity.y = Mathf.Sqrt(jumpHeight * -3.0f * gravity);
+        }
+    }
+    
+    public void OnBlock(InputValue buttonValue)
+    {
+        if (buttonValue.isPressed)
+        {
+            blocking = true;
+            shield.SetActive(true);
+        }
+        else
+        {
+            blocking = false;
+            aimingInput = Vector2.zero;
+            shield.SetActive(false);
+        }
+    }
+    
+    public void OnLockOnTarget(InputValue buttonValue)
+    {
+        if (buttonValue.isPressed)
+        {
+            LockOn();
+        }
+    }
+    
+    public void OnAttack(InputValue attackValue)
+    {
+        if (attackValue.isPressed)
+        {
+            if(!readyToAttack || attacking || aiming || blocking) return;
+            
+            aimEndTime = Time.time + aimingDuration;
+            aiming = true;
+        }
+    }
 
     void Awake()
     {
@@ -36,12 +92,22 @@ public class PlayerController1 : MonoBehaviour
         controller = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
         audioSource = GetComponent<AudioSource>();
-        playerInput = new InputSystem_Actions();
-        input = playerInput.Player;
-        AssignInputs();
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        
+        // this script is child of playableObjectPIOcomponent. Therefore. Get that, (it has PIO) ref, get the playerCamScript
+        // component, and get the main player playerCamScript from that.
+        try
+        {
+            playerCamScript = GetComponentInParent<PlayerObjectPioComponent>().Pio.GetComponent<CameraPioComponent>();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("PlayerController1: Error assigning camera. " + e);
+        }
+    }
+    
+    void OnDisable()
+    {
+        RESET();
     }
 
     void Update()
@@ -51,10 +117,10 @@ public class PlayerController1 : MonoBehaviour
     }
 
     void FixedUpdate() 
-    { MoveInput(input.Move.ReadValue<Vector2>()); }
+    { MoveInput(moveInput); }
 
     void LateUpdate() 
-    { LookInput(input.Look.ReadValue<Vector2>()); }
+    { LookInput(lookInput); }
 
     void MoveInput(Vector2 input)
     {
@@ -71,8 +137,6 @@ public class PlayerController1 : MonoBehaviour
 
     void LookInput(Vector2 input)
     {
-        float mouseX = input.x;
-        float mouseY = input.y;
         if (aiming || blocking)
         {
             aimingInput += input;
@@ -106,44 +170,6 @@ public class PlayerController1 : MonoBehaviour
                 aimingInput = Vector2.zero;
             }
         }
-        if (locked)
-        {
-            Vector3 dirToTarget = lockTarget.transform.position - cam.transform.position;
-            Vector3 flatDir = new Vector3(dirToTarget.x, 0, dirToTarget.z);
-            transform.forward = flatDir.normalized;
-            float verticalAngle = Mathf.Atan2(dirToTarget.y, flatDir.magnitude) * Mathf.Rad2Deg;
-            cam.transform.localRotation = Quaternion.Euler(-verticalAngle, 0, 0);
-            return;
-        }
-        xRotation -= (mouseY * Time.deltaTime * sensitivity);
-        xRotation = Mathf.Clamp(xRotation, -80, 80);
-
-        cam.transform.localRotation = Quaternion.Euler(xRotation, 0, 0);
-
-        transform.Rotate(Vector3.up * (mouseX * Time.deltaTime * sensitivity));
-    }
-
-    void OnEnable() 
-    { input.Enable(); }
-
-    void OnDisable()
-    { input.Disable(); }
-
-    void Jump()
-    {
-        // Adds force to the player rigidbody to jump
-        if (isGrounded)
-            _PlayerVelocity.y = Mathf.Sqrt(jumpHeight * -3.0f * gravity);
-    }
-
-    void AssignInputs()
-    {
-        input.Jump.performed += ctx => Jump();
-        input.Attack.started += ctx => InputAttack(ctx);
-       /* input.LockOn.started += ctx => LockOn();
-        input.Block.started += ctx => Block(ctx);
-        input.Block.canceled += ctx => Block(ctx);
-        input.SimulateHit.started += ctx => SimulateHit();*/
     }
 
     // ---------- //
@@ -223,21 +249,6 @@ public class PlayerController1 : MonoBehaviour
     private Direction attackDirection = Direction.Right;
     private bool locked;
     private GameObject lockTarget;
-    
-    void Block(InputAction.CallbackContext ctx)
-    {
-        if (ctx.started)
-        {
-            blocking = true;
-            shield.SetActive(true);
-        }
-        else if (ctx.canceled)
-        {
-            blocking = false;
-            aimingInput = Vector2.zero;
-            shield.SetActive(false);
-        }
-    }
 
     void SimulateHit()
     {
@@ -281,15 +292,6 @@ public class PlayerController1 : MonoBehaviour
         Debug.Log("Hit Player");
     }
     
-    void InputAttack(InputAction.CallbackContext ctx)
-    {
-        if(!readyToAttack || attacking || aiming || blocking) return;
-        if (ctx.started)
-        {
-            aimEndTime = Time.time + aimingDuration;
-            aiming = true;
-        }
-    }
     void DetermineAttackDir()
     {
         Vector2 inp = aimingInput;
@@ -317,14 +319,22 @@ public class PlayerController1 : MonoBehaviour
         if (locked)
         {
             locked = false;
+
+            playerCamScript.ConfigureTargetLock(false);
+            
             return;
         }
-        if(Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, lockDistance, attackLayer))
+        if(Physics.Raycast(playerCamScript.MainPlayerCam.transform.position,
+               playerCamScript.MainPlayerCam.transform.forward,
+               out RaycastHit hit, lockDistance, attackLayer))
         {
-            if (hit.collider.gameObject.TryGetComponent<Actor>(out Actor actor))
+            if (hit.collider.gameObject.TryGetComponent(out Actor actor))
             {
                 locked = true;
+                
                 lockTarget = hit.collider.gameObject;
+                
+                playerCamScript.ConfigureTargetLock(true, lockTarget.transform);
             }
             
         } 
@@ -358,7 +368,9 @@ public class PlayerController1 : MonoBehaviour
 
     void AttackRaycast()
     {
-        if(Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, attackDistance, attackLayer))
+        if(Physics.Raycast(playerCamScript.MainPlayerCam.transform.position,
+               playerCamScript.MainPlayerCam.transform.forward,
+               out RaycastHit hit, attackDistance, attackLayer))
         { 
             HitTarget(hit.point);
 
@@ -374,6 +386,28 @@ public class PlayerController1 : MonoBehaviour
 
         GameObject GO = Instantiate(hitEffect, pos, Quaternion.identity);
         Destroy(GO, 20);
+    }
+    
+    void RESET()
+    {
+        aiming = false;
+        aimingInput = Vector2.zero;
+        aimEndTime = 0;
+        blocking = false;
+        if (shield != null)
+        {
+            shield.SetActive(false);
+        }
+        if (locked)
+        {
+            locked = false;
+            lockTarget = null;
+            playerCamScript.ConfigureTargetLock(false);
+        }
+        
+        //for now no spawn pos so tp player object to world 0,0,0
+        transform.position = Vector3.zero;
+        transform.rotation = Quaternion.identity;
     }
 
     public void EnemyDeath(GameObject enemy)

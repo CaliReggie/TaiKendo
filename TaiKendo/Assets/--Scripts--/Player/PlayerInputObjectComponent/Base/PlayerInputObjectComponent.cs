@@ -16,7 +16,7 @@ public abstract class PlayerInputObjectComponent : MonoBehaviour
     /// <summary>
     /// The PlayerInputObject this component is associated with.
     /// </summary>
-    [field: SerializeField] protected PlayerInputObject Pio { get; private set; }
+    [field: SerializeField] public PlayerInputObject Pio { get; protected set; }
     
     /// <summary>
     /// Flag indication initialization logic such as checking and setting references, along with any additional logic
